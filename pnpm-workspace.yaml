@@ -1,0 +1,5 @@
+packages:
+  - 'apps/web/frontend'
+  - 'apps/web/backend'
+  - 'apps/nlp-service'
+  - 'packages/*'

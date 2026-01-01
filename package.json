@@ -1,0 +1,26 @@
+{
+  "name": "sieveflow",
+  "version": "1.0.0",
+  "description": "SieveFlow monorepo",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel -r dev",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:nlp": "pnpm --filter nlp-service dev",
+    "build": "pnpm -r build",
+    "build:packages": "pnpm --filter '@sieveflow/*' build",
+    "build:backend": "pnpm --filter backend build",
+    "build:frontend": "pnpm --filter frontend build",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "clean": "pnpm -r exec rm -rf node_modules dist .next && rm -rf node_modules"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.26.2",
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}
