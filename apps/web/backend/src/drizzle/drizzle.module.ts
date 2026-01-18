@@ -1,29 +1,29 @@
 import { Module, Global } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
 
-// Definimos una constante para el nombre del token de inyección
 export const DRIZZLE = 'DRIZZLE';
 
-@Global() // Lo hacemos global para no importarlo en cada módulo
+@Global()
 @Module({
   providers: [
     {
       provide: DRIZZLE,
-      useFactory: () => {
-        // 1. Construcción de la URL
-        // definida por postgres://user:password@host:port/database
-        const connectionString = `postgres://${process.env.DB_USER}:${process.env.DB_PASSWORD}@localhost:${process.env.DB_PORT}/${process.env.DB_NAME}`;
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => { 
+        const databaseUrl = configService.get<string>('DATABASE_URL');
 
-        // 2. Crear el Cliente de bajo nivel
-        const queryClient = postgres(connectionString);
+        if (!databaseUrl) {
+          throw new Error('Critical: DATABASE_URL is not defined in the environment variables.');
+        }
 
-        // 3. Inicializar Drizzle
+        const queryClient = postgres(databaseUrl);
         return drizzle(queryClient, { schema });
       },
     },
   ],
-  exports: [DRIZZLE], // Exportamos el token para que otros servicios lo inyecten
+  exports: [DRIZZLE],
 })
 export class DrizzleModule {}
