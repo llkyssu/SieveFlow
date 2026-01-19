@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { DrizzleModule } from './drizzle/drizzle.module';
+import { ResumesModule } from './resumes/resumes.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { DrizzleModule } from './drizzle/drizzle.module';
     }),
     DrizzleModule,
     AuthModule,
+    ResumesModule,
   ],
 })
 export class AppModule {}

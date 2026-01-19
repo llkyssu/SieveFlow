@@ -58,3 +58,6 @@ next-env.d.ts
 
 # OS
 Thumbs.db
+
+# Ignorar todos los archivos dentro de uploads
+apps/web/backend/uploads/*

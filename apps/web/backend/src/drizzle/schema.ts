@@ -33,8 +33,8 @@ export const jobs = pgTable('jobs', {
 
 export const candidates = pgTable('candidates', {
   id: serial('id').primaryKey(),
-  firstName: varchar('first_name', { length: 100 }),
-  lastName: varchar('last_name', { length: 100 }),
+  firstName: varchar('first_name', { length: 100 }).notNull(),
+  lastName: varchar('last_name', { length: 100 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   phone: varchar('phone', { length: 50 }),
   linkedinUrl: text('linkedin_url'),
