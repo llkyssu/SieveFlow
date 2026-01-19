@@ -5,6 +5,9 @@ import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { DrizzleModule } from './drizzle/drizzle.module';
 import { ResumesModule } from './resumes/resumes.module';
+import { ApplicationsService } from './applications/applications.service';
+import { ApplicationsController } from './applications/applications.controller';
+import { ApplicationsModule } from './applications/applications.module';
 
 @Module({
   imports: [
@@ -15,6 +18,9 @@ import { ResumesModule } from './resumes/resumes.module';
     DrizzleModule,
     AuthModule,
     ResumesModule,
+    ApplicationsModule,
   ],
+  providers: [ApplicationsService],
+  controllers: [ApplicationsController],
 })
 export class AppModule {}

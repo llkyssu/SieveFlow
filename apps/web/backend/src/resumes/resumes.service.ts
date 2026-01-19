@@ -4,7 +4,7 @@ import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../drizzle/schema';
 import { eq } from 'drizzle-orm';
 import { writeFile, mkdir, unlink } from 'fs/promises';
-import { join, extname } from 'path';
+import { join, resolve, extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { NewCandidateDto } from 'src/dto/new-candidate.dto';
 import { NlpClientService } from './nlp-client.service';
@@ -53,13 +53,12 @@ export class ResumesService {
     return updatedCandidate;
   }
 
-	async updateResume(candidateId: number, file: Express.Multer.File) {
+  async updateResume(candidateId: number, file: Express.Multer.File) {
     // 1. Preparar el destino
-    const uploadDir = join(process.cwd(), 'uploads', 'resumes');
-    await mkdir(uploadDir, { recursive: true });
-
+    const uploadDir = resolve(process.cwd(), 'uploads', 'resumes');
     // 2. Generar nombre único para evitar colisiones
     const fileName = `${uuidv4()}${extname(file.originalname)}`;
+    await mkdir(uploadDir, { recursive: true });
     const filePath = join(uploadDir, fileName);
 
     try {
