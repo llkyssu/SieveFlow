@@ -8,10 +8,17 @@ export class ApplicationsController {
 
   constructor(private readonly applicationsService: ApplicationsService) {}
 
+  @Post()
+  async create(@Body() body: { jobId: number; candidateId: number }) {
+    return await this.applicationsService.create(body.jobId, body.candidateId);
+  }
+  
   @Post('webhook/nlp-result')
   async handleNlpResult(@Body() data: NlpResponseDto) {
-    this.logger.log(`Recibido análisis para Aplicación ID: ${data.applicationId}`);
-    
+    this.logger.log(
+      `Recibido análisis para Aplicación ID: ${data.applicationId}`,
+    );
+
     return await this.applicationsService.updateWithAiAnalysis(data);
   }
 }

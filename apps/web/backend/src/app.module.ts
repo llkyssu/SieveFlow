@@ -8,6 +8,7 @@ import { ResumesModule } from './resumes/resumes.module';
 import { ApplicationsService } from './applications/applications.service';
 import { ApplicationsController } from './applications/applications.controller';
 import { ApplicationsModule } from './applications/applications.module';
+import { JobsModule } from './jobs/jobs.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ApplicationsModule } from './applications/applications.module';
     AuthModule,
     ResumesModule,
     ApplicationsModule,
+    JobsModule,
   ],
   providers: [ApplicationsService],
   controllers: [ApplicationsController],

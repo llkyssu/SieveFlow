@@ -7,6 +7,6 @@ import { NlpClientService } from './nlp-client.service';
 @Module({
   imports: [HttpModule],
   controllers: [ResumesController],
-  providers: [ResumesService, NlpClientService]
+  providers: [ResumesService, NlpClientService],
 })
 export class ResumesModule {}

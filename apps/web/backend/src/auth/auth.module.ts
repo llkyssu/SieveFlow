@@ -14,9 +14,9 @@ import { DrizzleModule } from '../drizzle/drizzle.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET') as string, 
-        signOptions: { 
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN') as any, 
+        secret: configService.get<string>('JWT_SECRET') as string,
+        signOptions: {
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN') as any,
         },
       }),
     }),

@@ -1,4 +1,9 @@
-import { Injectable, Inject, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DRIZZLE } from '../drizzle/drizzle.module';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../drizzle/schema';
@@ -13,7 +18,7 @@ import { NlpClientService } from './nlp-client.service';
 export class ResumesService {
   constructor(
     @Inject(DRIZZLE) private db: PostgresJsDatabase<typeof schema>,
-    private readonly nlpClientService: NlpClientService
+    private readonly nlpClientService: NlpClientService,
   ) {}
 
   // Lógica: Solo crea si no existe. Si existe, lo retorna.
@@ -28,7 +33,7 @@ export class ResumesService {
       .insert(schema.candidates)
       .values(dto)
       .returning();
-      
+
     return newCandidate;
   }
 
@@ -47,65 +52,72 @@ export class ResumesService {
       .returning();
 
     if (!updatedCandidate) {
-      throw new NotFoundException(`Candidato con email ${dto.email} no encontrado`);
+      throw new NotFoundException(
+        `Candidato con email ${dto.email} no encontrado`,
+      );
     }
 
     return updatedCandidate;
   }
 
   async updateResume(candidateId: number, file: Express.Multer.File) {
-    // 1. Preparar el destino
-    const uploadDir = resolve(process.cwd(), 'uploads', 'resumes');
-    // 2. Generar nombre único para evitar colisiones
-    const fileName = `${uuidv4()}${extname(file.originalname)}`;
-    await mkdir(uploadDir, { recursive: true });
-    const filePath = join(uploadDir, fileName);
+  // 1. Buscamos la aplicación activa de este candidato con sus requisitos
+  // Nota: Asumimos que el candidato tiene una aplicación pendiente. 
+  const application = await this.db.query.applications.findFirst({
+    where: eq(schema.applications.candidateId, candidateId),
+    with: {
+      job: true, // Esto requiere que tengas definida la relación en tu schema.ts
+    },
+    orderBy: (apps, { desc }) => [desc(apps.createdAt)], // Traemos la más reciente
+  });
 
-    try {
-      // 3. Persistencia física: Guardamos el buffer en el disco
-      await writeFile(filePath, file.buffer);
+  if (!application || !application.job) {
+    throw new NotFoundException('No se encontró una aplicación o puesto asociado para este candidato.');
+  }
 
-      // 4. Persistencia lógica: Actualizamos la URL en la DB
-      // Usamos la ruta relativa para que sea accesible luego vía web
-      const relativePath = `/uploads/resumes/${fileName}`;
-      
-      const [updatedCandidate] = await this.db
-        .update(schema.candidates)
-        .set({ defaultResumeUrl: relativePath })
-        .where(eq(schema.candidates.id, candidateId))
-        .returning();
+  const uploadDir = resolve(process.cwd(), 'uploads', 'resumes');
+  const fileName = `${uuidv4()}${extname(file.originalname)}`;
+  await mkdir(uploadDir, { recursive: true });
+  const filePath = join(uploadDir, fileName);
 
-      if (!updatedCandidate) {
-        // Si no existe el candidato, borramos el archivo que acabamos de guardar
-        throw new NotFoundException('Candidato no encontrado');
-      }
-      // Notificar al servicio NLP
-      this.nlpClientService.notifyNlpService(candidateId, filePath);
+  try {
+    // 2. Guardar archivo físico
+    await writeFile(filePath, file.buffer);
+    const relativePath = `/uploads/resumes/${fileName}`;
 
-      return {
-        message: 'Currículum actualizado con éxito',
-        resumeUrl: updatedCandidate.defaultResumeUrl,
-      };
+    // 3. Actualizar la URL en la tabla de candidatos
+    await this.db
+      .update(schema.candidates)
+      .set({ defaultResumeUrl: relativePath })
+      .where(eq(schema.candidates.id, candidateId));
 
-    } catch (error) {
-      // 5. Rollback manual del archivo
-      // Si la DB falla o el candidato no existe, el archivo no debe quedar en el disco
-      if (await this.fileExists(filePath)) {
-        await unlink(filePath).catch(() => null);
-      }
-      
-      if (error instanceof NotFoundException) throw error;
-      throw new InternalServerErrorException('Error al procesar el archivo');
+    // 4. NOTIFICAR A PYTHON (Versión Final)
+    // Convertimos el objeto de requisitos a un string legible para el prompt de Gemini
+    const requirementsString = JSON.stringify(application.job.requirements);
+    
+    this.nlpClientService.notifyNlpService(
+      application.id, 
+      filePath, 
+      requirementsString
+    );
+
+    return {
+      message: 'Currículum actualizado y enviado a análisis de IA',
+      applicationId: application.id
+    };
+  } catch (error) {
+    if (await this.fileExists(filePath)) await unlink(filePath).catch(() => null);
+    const errorMessage = (error instanceof Error) ? error.message : String(error);
+    throw new InternalServerErrorException(`Error crítico: ${errorMessage}`);
     }
   }
 
   private async fileExists(path: string): Promise<boolean> {
     try {
-      await import('fs/promises').then(fs => fs.access(path));
+      await import('fs/promises').then((fs) => fs.access(path));
       return true;
     } catch {
       return false;
     }
   }
 }
-

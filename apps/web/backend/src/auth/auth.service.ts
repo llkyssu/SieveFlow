@@ -3,14 +3,14 @@ import {
   Inject,
   ConflictException,
   UnauthorizedException,
-  NotFoundException
+  NotFoundException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { DRIZZLE } from '../drizzle/drizzle.module';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../drizzle/schema';
 import { eq } from 'drizzle-orm';
-import { JwtService } from '@nestjs/jwt'; 
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -19,7 +19,11 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  private async generateToken(user: { id: number; email: string; name: string }) {
+  private async generateToken(user: {
+    id: number;
+    email: string;
+    name: string;
+  }) {
     const payload = { sub: user.id, email: user.email };
     return {
       access_token: await this.jwtService.signAsync(payload),
@@ -27,7 +31,7 @@ export class AuthService {
         id: user.id,
         email: user.email,
         name: user.name,
-      }, 
+      },
     };
   }
 
@@ -46,10 +50,10 @@ export class AuthService {
     const [newUser] = await this.db // usamos el array destructuring
       .insert(schema.users)
       .values({ name, email, passwordHash })
-      .returning({ 
-        id: schema.users.id, 
-        email: schema.users.email, 
-        name: schema.users.name 
+      .returning({
+        id: schema.users.id,
+        email: schema.users.email,
+        name: schema.users.name,
       });
 
     return this.generateToken(newUser);
@@ -78,7 +82,7 @@ export class AuthService {
 
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
-    } 
+    }
     return user;
   }
 }

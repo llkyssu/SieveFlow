@@ -4,7 +4,7 @@ import json
 import logging
 import requests
 import fitz  # PyMuPDF
-import google.generativeai as genai
+from google import genai
 from fastapi import FastAPI, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -22,14 +22,18 @@ if not all([GOOGLE_API_KEY, WEBHOOK_URL, WEBHOOK_SECRET]):
     raise RuntimeError("Faltan variables de entorno críticas en el .env")
 
 # Configuración de IA
-genai.configure(api_key=GOOGLE_API_KEY)
-ai_model = genai.GenerativeModel('gemini-1.5-flash')
+client = genai.Client()  # Usará GEMINI_API_KEY automáticamente
 
 # Configuración de Logs
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("nlp-service")
 
 app = FastAPI(title="SieveFlow NLP Service")
+
+# --- ARRANQUE SERVIDOR ---
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
 # --- MODELOS ---
 class CVNotification(BaseModel):
@@ -49,24 +53,33 @@ def analyze_cv_with_ai(cv_text: str, requirements: str):
     """Analiza semánticamente el CV frente a los requisitos usando Gemini"""
     prompt = f"""
     Eres un reclutador experto sistema ATS. Analiza el CV adjunto comparándolo con los requerimientos.
-    
+
     REQUISITOS DEL PUESTO: 
     {requirements}
-    
+
     CONTENIDO DEL CV: 
     {cv_text}
-    
+
     Responde ÚNICAMENTE en formato JSON:
     {{
-      "score": (entero 0-100 basado en coincidencia técnica y experiencia),
-      "summary": (resumen de 3 líneas del perfil),
-      "decision": (explicación breve de la puntuación)
+        "score": (entero 0-100),
+        "summary": (resumen de 3 líneas),
+        "decision": (explicación breve)
     }}
     """
     try:
-        response = ai_model.generate_content(prompt)
-        # Limpieza de formato Markdown en la respuesta
-        clean_json = re.sub(r'```json|```', '', response.text).strip()
+        # CAMBIO AQUÍ: Usamos el nombre del modelo sin prefijos si la SDK lo requiere
+        # O aseguramos la versión estable.
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview", 
+            contents=prompt
+        )
+        
+        # Con la nueva SDK, a veces response.text directamente funciona, 
+        # pero es más seguro limpiar posibles marcas de markdown
+        response_text = response.text
+        clean_json = re.sub(r'```json|```', '', response_text).strip()
+        
         return json.loads(clean_json)
     except Exception as e:
         logger.error(f"Error en análisis de IA: {e}")

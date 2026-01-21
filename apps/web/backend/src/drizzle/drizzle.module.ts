@@ -12,11 +12,13 @@ export const DRIZZLE = 'DRIZZLE';
     {
       provide: DRIZZLE,
       inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => { 
+      useFactory: async (configService: ConfigService) => {
         const databaseUrl = configService.get<string>('DATABASE_URL');
 
         if (!databaseUrl) {
-          throw new Error('Critical: DATABASE_URL is not defined in the environment variables.');
+          throw new Error(
+            'Critical: DATABASE_URL is not defined in the environment variables.',
+          );
         }
 
         const queryClient = postgres(databaseUrl);
