@@ -1,24 +1,49 @@
-import { Controller, Post, Body, Logger } from '@nestjs/common';
+import { 
+  Controller, 
+  Post, 
+  Get, 
+  Body, 
+  Param, 
+  UseInterceptors, 
+  UploadedFile, 
+  ParseFilePipe, 
+  MaxFileSizeValidator, 
+  FileTypeValidator,
+  ParseIntPipe 
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
+import { CreateApplicationDto } from '../dto/create-application.dto';
 import { NlpResponseDto } from '../dto/nlp-response.dto';
 
 @Controller('applications')
 export class ApplicationsController {
-  private readonly logger = new Logger(ApplicationsController.name);
-
   constructor(private readonly applicationsService: ApplicationsService) {}
 
   @Post()
-  async create(@Body() body: { jobId: number; candidateId: number }) {
-    return await this.applicationsService.create(body.jobId, body.candidateId);
+  @UseInterceptors(FileInterceptor('file'))
+  async apply(
+    @Body() dto: CreateApplicationDto, 
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB
+          new FileTypeValidator({ fileType: 'application/pdf' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    return await this.applicationsService.createApplication(dto, file);
   }
-  
-  @Post('webhook/nlp-result')
-  async handleNlpResult(@Body() data: NlpResponseDto) {
-    this.logger.log(
-      `Recibido análisis para Aplicación ID: ${data.applicationId}`,
-    );
 
+  @Post('webhook/nlp-result')
+  async handleNlpWebhook(@Body() data: NlpResponseDto) {
     return await this.applicationsService.updateWithAiAnalysis(data);
+  }
+
+  @Get(':id')
+  async getApplication(@Param('id', ParseIntPipe) id: number) {
+    return await this.applicationsService.findOne(id);
   }
 }

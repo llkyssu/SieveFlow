@@ -26,6 +26,8 @@ export const jobs = pgTable('jobs', {
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   requirements: jsonb('requirements').notNull(),
+  hiddenRequirements: jsonb('hidden_requirements'),
+  vacancies: integer('vacancies').default(1),
   status: varchar('status', { length: 50 }).default('open'),
   createdAt: timestamp('created_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -51,11 +53,13 @@ export const applications = pgTable('applications', {
   candidateId: integer('candidate_id')
     .references(() => candidates.id)
     .notNull(),
-  resumeUrl: text('resume_url'), // CV específico para esta postulación
-  resumeRawText: text('resume_raw_text'), // Texto extraído por el NLP
-  aiScore: integer('ai_score'), // 0-100
+  resumeUrl: text('resume_url'),
+  coverLetterUrl: text('cover_letter_url'),
+  resumeRawText: text('resume_raw_text'),
+  coverLetterRawText: text('cover_letter_raw_text'),
+  aiScore: integer('ai_score'),
   aiAnalysisSummary: text('ai_analysis_summary'),
-  status: varchar('status', { length: 50 }).default('pending'), // screening, interview, hired, rejected, withdrawn
+  status: varchar('status', { length: 50 }).default('pending'),
   createdAt: timestamp('created_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
@@ -71,8 +75,6 @@ export const interviews = pgTable('interviews', {
   createdAt: timestamp('created_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
-
-// --- RELATIONS (Drizzle Relations API) ---
 
 export const usersRelations = relations(users, ({ many }) => ({
   jobs: many(jobs),

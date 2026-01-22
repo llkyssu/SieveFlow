@@ -1,14 +1,12 @@
-// apps/web/backend/src/app.module.ts
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
 import { DrizzleModule } from './drizzle/drizzle.module';
 import { ResumesModule } from './resumes/resumes.module';
-import { ApplicationsService } from './applications/applications.service';
-import { ApplicationsController } from './applications/applications.controller';
 import { ApplicationsModule } from './applications/applications.module';
 import { JobsModule } from './jobs/jobs.module';
+import { CandidatesModule } from './candidates/candidates.module';
 
 @Module({
   imports: [
@@ -21,8 +19,9 @@ import { JobsModule } from './jobs/jobs.module';
     ResumesModule,
     ApplicationsModule,
     JobsModule,
+    CandidatesModule,
   ],
-  providers: [ApplicationsService],
-  controllers: [ApplicationsController],
+  controllers: [], 
+  providers: [], 
 })
 export class AppModule {}
