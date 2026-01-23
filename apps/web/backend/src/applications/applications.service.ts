@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { DRIZZLE } from '../drizzle/drizzle.module';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../drizzle/schema';
@@ -7,6 +7,10 @@ import { ResumesService } from '../resumes/resumes.service';
 import { NlpClientService } from './nlp-client.service';
 import { CreateApplicationDto } from '../dto/create-application.dto';
 import { NlpResponseDto } from '../dto/nlp-response.dto';
+
+// Definición de tipos para mayor control del flujo
+export type ApplicationStatus = 'pending' | 'reviewed' | 'interview' | 'rejected' | 'hired';
+export type ApplicationDecision = 'ADVANCE' | 'HOLD' | 'REJECT';
 
 @Injectable()
 export class ApplicationsService {
@@ -41,7 +45,7 @@ export class ApplicationsService {
           candidateId: dto.candidateId,
           resumeUrl: resumeStorage.publicUrl,
           coverLetterUrl: coverUrl,
-          status: 'pending',
+          status: 'pending', // Estado inicial de la cascada
         })
         .returning();
 
@@ -66,17 +70,45 @@ export class ApplicationsService {
     }
   }
 
-  async updateWithAiAnalysis(data: NlpResponseDto) {
+  async updateStatus(id: number, status: ApplicationStatus) {
+    const application = await this.findById(id);
 
+    // REGLA: No contratar si la IA lo rechazó
+    if (status === 'hired' && application.decision === 'REJECT') {
+      throw new BadRequestException('No se puede contratar a un candidato marcado como REJECT por el sistema.');
+    }
+
+    // REGLA: Si pasa a entrevista, asegurar que la decisión sea ADVANCE o HOLD
+    if (status === 'interview' && application.decision === 'REJECT') {
+      throw new BadRequestException('No puedes entrevistar a un candidato rechazado.');
+    }
+
+    // Sincronización de decisión automática al rechazar
+    const updateData: any = { status };
+    if (status === 'rejected') {
+      updateData.decision = 'REJECT';
+    }
+
+    const [updated] = await this.db
+      .update(schema.applications)
+      .set(updateData)
+      .where(eq(schema.applications.id, id))
+      .returning();
+
+    return updated;
+  }
+
+  async updateWithAiAnalysis(data: NlpResponseDto) {
     if (data.decision && !['ADVANCE', 'HOLD', 'REJECT'].includes(data.decision)) {
-      throw new InternalServerErrorException('Decisión inválida recibida del servicio NLP');
+      throw new InternalServerErrorException('Decisión inválida');
     }
 
     if (data.score < 0 || data.score > 100) {
-      throw new InternalServerErrorException('Puntaje inválido recibido del servicio NLP');
+      throw new InternalServerErrorException('Puntaje inválido');
     }
 
-    const updateStatus = data.decision === 'REJECT' ? 'rejected' : 'reviewed';
+    // Determinamos el siguiente paso en el "tobogán" según la IA
+    const nextStatus: ApplicationStatus = data.decision === 'REJECT' ? 'rejected' : 'reviewed';
 
     const [updatedApp] = await this.db
       .update(schema.applications)
@@ -84,9 +116,9 @@ export class ApplicationsService {
         aiScore: data.score,
         aiAnalysisSummary: data.summary,
         resumeRawText: data.rawText,
-        status: updateStatus,
         coverLetterRawText: data.coverLetterText || null,
-        decision: data.decision || null
+        decision: (data.decision as ApplicationDecision) || null,
+        status: nextStatus,
       })
       .where(eq(schema.applications.id, data.applicationId))
       .returning();
@@ -110,5 +142,5 @@ export class ApplicationsService {
       with: { job: true, candidate: true },
       orderBy: desc(schema.applications.aiScore),
     });
-  } 
+  }
 }

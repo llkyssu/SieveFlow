@@ -59,7 +59,7 @@ export const applications = pgTable('applications', {
   coverLetterRawText: text('cover_letter_raw_text'),
   aiScore: integer('ai_score'),
   aiAnalysisSummary: text('ai_analysis_summary'),
-  status: varchar('status', { length: 50 }).default('pending'), // pending | processing | reviewed | interviewed | offered | rejected
+  status: varchar('status', { length: 50 }).default('pending'), // pending | processing | reviewed | interview | offered | rejected
   decision: varchar('decision', { length: 50 }), // ADVANCE | HOLD | REJECT
   createdAt: timestamp('created_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
@@ -72,7 +72,7 @@ export const interviews = pgTable('interviews', {
     .notNull(),
   scheduledAt: timestamp('scheduled_at'),
   meetingLink: text('meeting_link'),
-  status: varchar('status', { length: 50 }).default('scheduled'),
+  status: varchar('status', { length: 50 }).default('scheduled'), // scheduled | completed | canceled
   createdAt: timestamp('created_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
