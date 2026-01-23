@@ -67,13 +67,24 @@ export class ApplicationsService {
   }
 
   async updateWithAiAnalysis(data: NlpResponseDto) {
+
+    if (data.decision && !['ADVANCE', 'HOLD', 'REJECT'].includes(data.decision)) {
+      throw new InternalServerErrorException('Decisión inválida recibida del servicio NLP');
+    }
+
+    if (data.score < 0 || data.score > 100) {
+      throw new InternalServerErrorException('Puntaje inválido recibido del servicio NLP');
+    }
+
+    const updateStatus = data.decision === 'REJECT' ? 'rejected' : 'reviewed';
+
     const [updatedApp] = await this.db
       .update(schema.applications)
       .set({
         aiScore: data.score,
         aiAnalysisSummary: data.summary,
         resumeRawText: data.rawText,
-        status: 'reviewed',
+        status: updateStatus,
         coverLetterRawText: data.coverLetterText || null,
         decision: data.decision || null
       })
@@ -84,7 +95,7 @@ export class ApplicationsService {
     return updatedApp;
   }
 
-  async findOne(id: number) {
+  async findById(id: number) {
     const app = await this.db.query.applications.findFirst({
       where: eq(schema.applications.id, id),
       with: { job: true, candidate: true }
@@ -99,5 +110,5 @@ export class ApplicationsService {
       with: { job: true, candidate: true },
       orderBy: desc(schema.applications.aiScore),
     });
-  }
+  } 
 }

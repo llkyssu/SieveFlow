@@ -44,7 +44,7 @@ export class ApplicationsController {
 
   @Get(':id')
   async getApplication(@Param('id', ParseIntPipe) id: number) {
-    return await this.applicationsService.findOne(id);
+    return await this.applicationsService.findById(id);
   }
 
   @Get('jobs/:jobId')
