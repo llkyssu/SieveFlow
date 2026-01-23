@@ -2,7 +2,7 @@ import { Injectable, Inject, NotFoundException, InternalServerErrorException } f
 import { DRIZZLE } from '../drizzle/drizzle.module';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../drizzle/schema';
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { ResumesService } from '../resumes/resumes.service';
 import { NlpClientService } from './nlp-client.service';
 import { CreateApplicationDto } from '../dto/create-application.dto';
@@ -16,14 +16,22 @@ export class ApplicationsService {
     private readonly nlpClientService: NlpClientService,
   ) {}
 
-  async createApplication(dto: CreateApplicationDto, file: Express.Multer.File) {
+  async createApplication(dto: CreateApplicationDto, resumeFile: Express.Multer.File, coverFile?: Express.Multer.File) {
     const job = await this.db.query.jobs.findFirst({
       where: eq(schema.jobs.id, dto.jobId),
     });
 
-    if (!job) throw new NotFoundException('El trabajo especificado no existe');
+    if (!job) throw new NotFoundException('El trabajo no existe');
 
-    const storage = await this.resumesService.saveFile(file, 'resumes');
+    const resumeStorage = await this.resumesService.saveFile(resumeFile, 'resumes');
+    let coverUrl: string | null = null;
+    let coverPath: string | null = null;
+
+    if (coverFile) {
+      const coverStorage = await this.resumesService.saveFile(coverFile, 'covers');
+      coverUrl = coverStorage.publicUrl;
+      coverPath = coverStorage.absolutePath;
+    }
 
     try {
       const [newApplication] = await this.db
@@ -31,26 +39,29 @@ export class ApplicationsService {
         .values({
           jobId: dto.jobId,
           candidateId: dto.candidateId,
-          resumeUrl: storage.publicUrl,
+          resumeUrl: resumeStorage.publicUrl,
+          coverLetterUrl: coverUrl,
           status: 'pending',
         })
         .returning();
 
-      const combinedRequirements = JSON.stringify({
-        public: job.requirements,
-        hidden: (job as any).hiddenRequirements || null 
+      const nlpPayload = JSON.stringify({
+        public_criteria: job.requirements,
+        secret_criteria: (job as any).hiddenRequirements || null,
+        resumePath: resumeStorage.absolutePath,
+        coverLetterPath: coverPath
       });
 
       this.nlpClientService.notifyNlpService(
         newApplication.id,
-        storage.absolutePath,
-        combinedRequirements
+        resumeStorage.absolutePath,
+        nlpPayload
       );
 
       return newApplication;
-
     } catch (error) {
-      await this.resumesService.removeFile(storage.absolutePath);
+      await this.resumesService.removeFile(resumeStorage.absolutePath);
+      if (coverPath) await this.resumesService.removeFile(coverPath);
       throw new InternalServerErrorException('Error al procesar la postulación');
     }
   }
@@ -63,24 +74,30 @@ export class ApplicationsService {
         aiAnalysisSummary: data.summary,
         resumeRawText: data.rawText,
         status: 'reviewed',
+        coverLetterRawText: data.coverLetterText || null,
+        decision: data.decision || null
       })
       .where(eq(schema.applications.id, data.applicationId))
       .returning();
 
-    if (!updatedApp) throw new NotFoundException(`Application ID ${data.applicationId} not found`);
-    
+    if (!updatedApp) throw new NotFoundException('Aplicación no encontrada');
     return updatedApp;
   }
 
   async findOne(id: number) {
     const app = await this.db.query.applications.findFirst({
       where: eq(schema.applications.id, id),
-      with: {
-        job: true,
-        candidate: true,
-      }
+      with: { job: true, candidate: true }
     });
     if (!app) throw new NotFoundException('Aplicación no encontrada');
     return app;
+  }
+
+  async findByJob(jobId: number) {
+    return await this.db.query.applications.findMany({
+      where: eq(schema.applications.jobId, jobId),
+      with: { job: true, candidate: true },
+      orderBy: desc(schema.applications.aiScore),
+    });
   }
 }

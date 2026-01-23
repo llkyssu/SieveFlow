@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsObject } from 'class-validator';
+import { IsString, IsNotEmpty, IsObject, IsOptional } from 'class-validator';
 
 export class CreateJobDto {
   @IsString()
@@ -12,4 +12,8 @@ export class CreateJobDto {
   @IsObject()
   @IsNotEmpty()
     requirements: any;
+
+  @IsObject()
+  @IsOptional()
+    hiddenRequirements?: any;
 }

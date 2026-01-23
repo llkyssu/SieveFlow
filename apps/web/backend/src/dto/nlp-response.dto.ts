@@ -1,17 +1,23 @@
-import { IsInt, IsString, Min, Max } from 'class-validator';
+import { IsNumber, IsString, IsOptional } from 'class-validator';
 
 export class NlpResponseDto {
-  @IsInt()
-    applicationId!: number;
+  @IsNumber()
+  applicationId!: number;
 
-  @IsInt()
-  @Min(0)
-  @Max(100)
-    score!: number;
+  @IsNumber()
+  score!: number;
 
   @IsString()
-    summary!: string;
+  summary!: string;
 
   @IsString()
-    rawText!: string;
+  rawText!: string;
+
+  @IsString()
+  @IsOptional()
+  coverLetterText?: string;
+
+  @IsString()
+  @IsOptional()
+  decision?: string; 
 }

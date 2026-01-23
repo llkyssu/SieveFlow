@@ -10,7 +10,7 @@ export class NlpClientService {
     private readonly configService: ConfigService,
   ) {}
 
-  notifyNlpService(applicationId: number, filePath: string, jobRequirements: string): void {
+  async notifyNlpService(applicationId: number, filePath: string, jobRequirements: string): Promise<void> {
     const url = this.configService.get<string>('NLP_SERVICE_URL');
     
     const payload = { 
@@ -21,6 +21,6 @@ export class NlpClientService {
 
     if (!url) return;
 
-    lastValueFrom(this.httpService.post(url, payload)).catch(() => {});
+    await lastValueFrom(this.httpService.post(url, payload));
   }
 }
