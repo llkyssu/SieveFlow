@@ -2,7 +2,7 @@ import { Injectable, Inject, NotFoundException, InternalServerErrorException, Ba
 import { DRIZZLE } from '../drizzle/drizzle.module';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../drizzle/schema';
-import { eq, desc, and, gte } from 'drizzle-orm';
+import { eq, desc, and, gte, sql } from 'drizzle-orm';
 import { ResumesService } from '../resumes/resumes.service';
 import { NlpClientService } from './nlp-client.service';
 import { CreateApplicationDto } from '../dto/create-application.dto';
@@ -84,6 +84,37 @@ export class ApplicationsService {
     const currentStatus = application.status as ApplicationStatus;
 
     // ═══════════════════════════════════════════════════════════════════
+    // REGLA 0: CONTROL DE VACANTES - Verificar antes de contratar
+    // ═══════════════════════════════════════════════════════════════════
+    if (status === 'hired') {
+      const job = application.job;
+      if (!job) {
+        throw new NotFoundException('Puesto no encontrado para esta aplicación');
+      }
+
+      // Contar cuántos ya están contratados para ese trabajo
+      const hiredCount = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.applications)
+        .where(
+          and(
+            eq(schema.applications.jobId, application.jobId),
+            eq(schema.applications.status, 'hired')
+          )
+        );
+
+      const currentHired = Number(hiredCount[0]?.count || 0);
+      const maxVacancies = job.vacancies || 1;
+
+      // Bloquear si ya se alcanzó el límite
+      if (currentHired >= maxVacancies) {
+        throw new BadRequestException(
+          `No hay vacantes disponibles para este puesto (${currentHired}/${maxVacancies} ocupadas)`
+        );
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
     // REGLA 1: ESTADOS TERMINALES - No se puede salir sin reconsideración
     // ═══════════════════════════════════════════════════════════════════
     if (TERMINAL_STATES.includes(currentStatus) && currentStatus !== status) {
@@ -131,6 +162,31 @@ export class ApplicationsService {
       .set(updateData)
       .where(eq(schema.applications.id, id))
       .returning();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // BONUS: Cerrar puesto automáticamente si se llenaron las vacantes
+    // ═══════════════════════════════════════════════════════════════════
+    if (status === 'hired') {
+      const hiredAfterUpdate = await this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.applications)
+        .where(
+          and(
+            eq(schema.applications.jobId, application.jobId),
+            eq(schema.applications.status, 'hired')
+          )
+        );
+
+      const totalHired = Number(hiredAfterUpdate[0]?.count || 0);
+      const maxVacancies = application.job?.vacancies || 1;
+
+      if (totalHired >= maxVacancies) {
+        await this.db
+          .update(schema.jobs)
+          .set({ status: 'closed' })
+          .where(eq(schema.jobs.id, application.jobId));
+      }
+    }
 
     return updated;
   }
