@@ -1,5 +1,6 @@
 import {
   pgTable,
+  pgEnum,
   serial,
   text,
   varchar,
@@ -8,6 +9,30 @@ import {
   jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+
+// ENUMs de PostgreSQL para validación a nivel de DB
+export const applicationStatusEnum = pgEnum('application_status', [
+  'pending',
+  'processing', 
+  'reviewed',
+  'interview',
+  'offered',
+  'hired',
+  'rejected',
+  'withdrawn'
+]);
+
+export const applicationDecisionEnum = pgEnum('application_decision', [
+  'ADVANCE',
+  'HOLD',
+  'REJECT'
+]);
+
+export const interviewStatusEnum = pgEnum('interview_status', [
+  'scheduled',
+  'completed',
+  'canceled'
+]);
 
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
@@ -59,8 +84,8 @@ export const applications = pgTable('applications', {
   coverLetterRawText: text('cover_letter_raw_text'),
   aiScore: integer('ai_score'),
   aiAnalysisSummary: text('ai_analysis_summary'),
-  status: varchar('status', { length: 50 }).default('pending'), // pending | processing | reviewed | interview | offered | rejected
-  decision: varchar('decision', { length: 50 }), // ADVANCE | HOLD | REJECT
+  status: applicationStatusEnum('status').default('pending').notNull(),
+  decision: applicationDecisionEnum('decision'),
   createdAt: timestamp('created_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });
@@ -72,7 +97,7 @@ export const interviews = pgTable('interviews', {
     .notNull(),
   scheduledAt: timestamp('scheduled_at'),
   meetingLink: text('meeting_link'),
-  status: varchar('status', { length: 50 }).default('scheduled'), // scheduled | completed | canceled
+  status: interviewStatusEnum('status').default('scheduled').notNull(),
   createdAt: timestamp('created_at').defaultNow(),
   deletedAt: timestamp('deleted_at'),
 });

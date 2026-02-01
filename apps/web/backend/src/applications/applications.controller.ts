@@ -58,6 +58,20 @@ export class ApplicationsController {
 
   @Patch(':id/update-status')
   async updateStatus(@Param('id', ParseIntPipe) id: number, @Body('status') status: ApplicationStatus) {
-  return await this.applicationsService.updateStatus(id, status);
+    return await this.applicationsService.updateStatus(id, status);
+  }
+
+  /**
+   * RECONSIDERAR - Endpoint de "salida de emergencia"
+   * 
+   * Permite reactivar una postulación rechazada para darle una segunda oportunidad.
+   * El candidato vuelve al estado 'reviewed' listo para continuar el flujo.
+   */
+  @Patch(':id/reconsider')
+  async reconsider(
+    @Param('id', ParseIntPipe) id: number, 
+    @Body('reason') reason?: string
+  ) {
+    return await this.applicationsService.reconsider(id, reason);
   }
 }

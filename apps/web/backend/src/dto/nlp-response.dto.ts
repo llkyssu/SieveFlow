@@ -1,10 +1,15 @@
-import { IsNumber, IsString, IsOptional } from 'class-validator';
+import { IsNumber, IsString, IsOptional, IsIn, Min, Max } from 'class-validator';
+
+export const APPLICATION_DECISIONS = ['ADVANCE', 'HOLD', 'REJECT'] as const;
+export type ApplicationDecision = typeof APPLICATION_DECISIONS[number];
 
 export class NlpResponseDto {
   @IsNumber()
   applicationId!: number;
 
   @IsNumber()
+  @Min(0)
+  @Max(100)
   score!: number;
 
   @IsString()
@@ -17,7 +22,7 @@ export class NlpResponseDto {
   @IsOptional()
   coverLetterText?: string;
 
-  @IsString()
+  @IsIn(APPLICATION_DECISIONS, { message: 'decision debe ser ADVANCE, HOLD o REJECT' })
   @IsOptional()
-  decision?: string; 
+  decision?: ApplicationDecision;
 }

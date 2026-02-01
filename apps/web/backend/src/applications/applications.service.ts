@@ -8,9 +8,13 @@ import { NlpClientService } from './nlp-client.service';
 import { CreateApplicationDto } from '../dto/create-application.dto';
 import { NlpResponseDto } from '../dto/nlp-response.dto';
 
-// Definición de tipos para mayor control del flujo
-export type ApplicationStatus = 'pending' | 'reviewed' | 'interview' | 'rejected' | 'hired';
+// Tipos inferidos del schema (deben coincidir con pgEnum)
+export type ApplicationStatus = 'pending' | 'processing' | 'reviewed' | 'interview' | 'offered' | 'hired' | 'rejected' | 'withdrawn';
 export type ApplicationDecision = 'ADVANCE' | 'HOLD' | 'REJECT';
+
+// Constantes de flujo de trabajo
+const TERMINAL_STATES: ApplicationStatus[] = ['rejected', 'hired', 'withdrawn'];
+const RESET_STATE: ApplicationStatus = 'reviewed';
 
 @Injectable()
 export class ApplicationsService {
@@ -26,6 +30,10 @@ export class ApplicationsService {
     });
 
     if (!job) throw new NotFoundException('El trabajo no existe');
+
+    if (job.status !== 'open') {
+      throw new BadRequestException('No se pueden postular a trabajos que no están abiertos');
+    }
 
     const resumeStorage = await this.resumesService.saveFile(resumeFile, 'resumes');
     let coverUrl: string | null = null;
@@ -72,19 +80,47 @@ export class ApplicationsService {
 
   async updateStatus(id: number, status: ApplicationStatus) {
     const application = await this.findById(id);
+    const currentStatus = application.status as ApplicationStatus;
 
-    // REGLA: No contratar si la IA lo rechazó
-    if (status === 'hired' && application.decision === 'REJECT') {
-      throw new BadRequestException('No se puede contratar a un candidato marcado como REJECT por el sistema.');
+    // ═══════════════════════════════════════════════════════════════════
+    // REGLA 1: ESTADOS TERMINALES - No se puede salir sin reconsideración
+    // ═══════════════════════════════════════════════════════════════════
+    if (TERMINAL_STATES.includes(currentStatus) && currentStatus !== status) {
+      throw new BadRequestException(
+        `No se puede cambiar el estado desde '${currentStatus}'. ` +
+        `Use el método 'reconsider' para reactivar esta postulación.`
+      );
     }
 
-    // REGLA: Si pasa a entrevista, asegurar que la decisión sea ADVANCE o HOLD
-    if (status === 'interview' && application.decision === 'REJECT') {
-      throw new BadRequestException('No puedes entrevistar a un candidato rechazado.');
+    // ═══════════════════════════════════════════════════════════════════
+    // REGLA 2: BARRERA DE DECISIÓN - La IA tiene voz en el flujo
+    // ═══════════════════════════════════════════════════════════════════
+    if (application.decision === 'REJECT') {
+      if (status === 'hired') {
+        throw new BadRequestException(
+          'No se puede contratar a un candidato marcado como REJECT por el sistema.'
+        );
+      }
+      if (status === 'interview') {
+        throw new BadRequestException(
+          'No se puede entrevistar a un candidato rechazado. Use reconsider primero.'
+        );
+      }
     }
 
-    // Sincronización de decisión automática al rechazar
-    const updateData: any = { status };
+    // ═══════════════════════════════════════════════════════════════════
+    // REGLA 3: HOLD requiere revisión manual antes de avanzar
+    // ═══════════════════════════════════════════════════════════════════
+    if (application.decision === 'HOLD' && status === 'hired') {
+      throw new BadRequestException(
+        'No se puede contratar directamente a un candidato en HOLD. Primero debe pasar por entrevista.'
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // SINCRONIZACIÓN: Mantener consistencia decision <-> status
+    // ═══════════════════════════════════════════════════════════════════
+    const updateData: Partial<typeof schema.applications.$inferInsert> = { status };
     if (status === 'rejected') {
       updateData.decision = 'REJECT';
     }
@@ -96,6 +132,54 @@ export class ApplicationsService {
       .returning();
 
     return updated;
+  }
+
+  /**
+   * RECONSIDERAR - Salida de emergencia para estados terminales
+   * 
+   * Este método permite "revivir" una postulación rechazada.
+   * El candidato vuelve al estado 'reviewed' y su decisión se limpia,
+   * permitiendo que el flujo normal continúe.
+   * 
+   * Casos de uso:
+   * - Error humano: reclutador rechazó al candidato equivocado
+   * - Nueva vacante: candidato rechazado para un puesto ahora es apto para otro
+   * - Reconsideración: después de revisar manualmente el caso
+   */
+  async reconsider(id: number, reason?: string) {
+    const application = await this.findById(id);
+    const currentStatus = application.status as ApplicationStatus;
+
+    // Solo se puede reconsiderar desde estados terminales
+    if (!TERMINAL_STATES.includes(currentStatus)) {
+      throw new BadRequestException(
+        `Solo se pueden reconsiderar postulaciones en estados terminales (rejected, hired). ` +
+        `Estado actual: '${currentStatus}'`
+      );
+    }
+
+    // No reconsiderar a alguien ya contratado (hired es final-final)
+    if (currentStatus === 'hired') {
+      throw new BadRequestException(
+        'No se puede reconsiderar a un candidato ya contratado.'
+      );
+    }
+
+    const [updated] = await this.db
+      .update(schema.applications)
+      .set({
+        status: RESET_STATE,
+        decision: null, // Limpiamos la decisión para permitir nueva evaluación
+      })
+      .where(eq(schema.applications.id, id))
+      .returning();
+
+    return {
+      ...updated,
+      _reconsidered: true,
+      _previousStatus: currentStatus,
+      _reason: reason || 'No especificada',
+    };
   }
 
   async updateWithAiAnalysis(data: NlpResponseDto) {
