@@ -8,12 +8,14 @@ import {
   UploadedFiles, 
   ParseIntPipe,
   BadRequestException,
-  Patch
+  Patch,
+  Query
 } from '@nestjs/common';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from '../dto/create-application.dto';
 import { NlpResponseDto } from '../dto/nlp-response.dto';
+import { GetApplicationsQueryDto } from '../dto/get-applications-query.dto';
 
 export type ApplicationStatus = 'pending' | 'reviewed' | 'interview' | 'rejected' | 'hired';
 export type ApplicationDecision = 'ADVANCE' | 'HOLD' | 'REJECT';
@@ -52,8 +54,11 @@ export class ApplicationsController {
   }
 
   @Get('jobs/:jobId')
-  async getByJob(@Param('jobId', ParseIntPipe) jobId: number) {
-    return await this.applicationsService.findByJob(jobId);
+  async getByJob(
+    @Param('jobId', ParseIntPipe) jobId: number,
+    @Query() query: GetApplicationsQueryDto,
+  ) {
+    return await this.applicationsService.findByJob(jobId, query);
   }
 
   @Patch(':id/update-status')

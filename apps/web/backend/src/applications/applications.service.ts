@@ -2,11 +2,12 @@ import { Injectable, Inject, NotFoundException, InternalServerErrorException, Ba
 import { DRIZZLE } from '../drizzle/drizzle.module';
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../drizzle/schema';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, and, gte } from 'drizzle-orm';
 import { ResumesService } from '../resumes/resumes.service';
 import { NlpClientService } from './nlp-client.service';
 import { CreateApplicationDto } from '../dto/create-application.dto';
 import { NlpResponseDto } from '../dto/nlp-response.dto';
+import { GetApplicationsQueryDto } from '../dto/get-applications-query.dto';
 
 // Tipos inferidos del schema (deben coincidir con pgEnum)
 export type ApplicationStatus = 'pending' | 'processing' | 'reviewed' | 'interview' | 'offered' | 'hired' | 'rejected' | 'withdrawn';
@@ -220,11 +221,24 @@ export class ApplicationsService {
     return app;
   }
 
-  async findByJob(jobId: number) {
+  async findByJob(jobId: number, filters?: GetApplicationsQueryDto) {
+    const conditions = [eq(schema.applications.jobId, jobId)];
+
+    if (filters?.minScore !== undefined) {
+      conditions.push(gte(schema.applications.aiScore, filters.minScore));
+    }
+
+    if (filters?.status) {
+      conditions.push(eq(schema.applications.status, filters.status as any));
+    }
+
     return await this.db.query.applications.findMany({
-      where: eq(schema.applications.jobId, jobId),
-      with: { job: true, candidate: true },
-      orderBy: desc(schema.applications.aiScore),
+      where: and(...conditions),
+      with: { 
+        job: true, 
+        candidate: true 
+      },
+      orderBy: [desc(schema.applications.aiScore)],
     });
   }
 }
