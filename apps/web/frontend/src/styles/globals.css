@@ -1,0 +1,228 @@
+/* ========================================
+   SIEVEFLOW - Design System
+   Elegant, minimal, Apple/X inspired
+   ======================================== */
+
+:root {
+  /* Slate palette */
+  --slate-100: #bfcddc;
+  --slate-200: #8ea7c1;
+  --slate-300: #6d8196;
+  --slate-400: #4e5d6d;
+  --slate-500: #313b46;
+  
+  /* Core colors - Light theme */
+  --background: #ffffff;
+  --background-secondary: #f8f9fa;
+  --background-blur: rgba(255, 255, 255, 0.8);
+  --foreground: #0a0a0a;
+  
+  /* Surfaces */
+  --surface: #ffffff;
+  --surface-elevated: #ffffff;
+  --surface-hover: rgba(0, 0, 0, 0.03);
+  --surface-active: rgba(0, 0, 0, 0.05);
+  
+  /* Text */
+  --text-primary: #0a0a0a;
+  --text-secondary: var(--slate-400);
+  --text-tertiary: var(--slate-300);
+  --text-muted: var(--slate-200);
+  
+  /* Borders */
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.12);
+  
+  /* Primary - Black accent */
+  --primary: #0a0a0a;
+  --primary-hover: #1a1a1a;
+  --primary-foreground: #ffffff;
+  
+  /* Secondary - Slate */
+  --secondary: var(--slate-400);
+  --secondary-hover: var(--slate-500);
+  --secondary-foreground: #ffffff;
+  
+  /* Accent - Subtle blue-slate */
+  --accent: var(--slate-200);
+  --accent-foreground: var(--slate-500);
+  
+  /* States */
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: var(--slate-200);
+  
+  /* Shadows - Very subtle */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.12);
+  
+  /* Radius - Rounded, modern */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+  
+  /* Transitions - Smooth, Apple-like */
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.1);
+  --duration-fast: 150ms;
+  --duration: 200ms;
+  --duration-slow: 350ms;
+  
+  /* Spacing scale */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+}
+
+/* Dark theme */
+.dark {
+  --background: #0a0a0a;
+  --background-secondary: #111111;
+  --background-blur: rgba(10, 10, 10, 0.8);
+  --foreground: #fafafa;
+  
+  --surface: #141414;
+  --surface-elevated: #1a1a1a;
+  --surface-hover: rgba(255, 255, 255, 0.04);
+  --surface-active: rgba(255, 255, 255, 0.06);
+  
+  --text-primary: #fafafa;
+  --text-secondary: var(--slate-200);
+  --text-tertiary: var(--slate-300);
+  --text-muted: var(--slate-400);
+  
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  
+  --primary: #ffffff;
+  --primary-hover: #e5e5e5;
+  --primary-foreground: #0a0a0a;
+  
+  --secondary: var(--slate-300);
+  --secondary-hover: var(--slate-200);
+  --secondary-foreground: var(--slate-500);
+  
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-xl: 0 24px 64px rgba(0, 0, 0, 0.5);
+}
+
+/* ========================================
+   Reset & Base
+   ======================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+  font-feature-settings: 'ss01' on, 'ss02' on, 'cv01' on;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+p {
+  color: var(--text-secondary);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img, picture, video, canvas, svg {
+  display: block;
+  max-width: 100%;
+}
+
+input, button, textarea, select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+ul, ol {
+  list-style: none;
+}
+
+/* Focus styles - Minimal, elegant */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--slate-300);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: var(--slate-200);
+  color: var(--slate-500);
+}
+
+/* Scrollbar - Minimal */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--slate-300);
+}

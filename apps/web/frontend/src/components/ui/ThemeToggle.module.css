@@ -1,0 +1,28 @@
+/* Theme Toggle - Minimal */
+.toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--duration) var(--ease);
+}
+
+.toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.toggle:active {
+  transform: scale(0.95);
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}

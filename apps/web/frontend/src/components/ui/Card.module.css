@@ -1,0 +1,53 @@
+/* Card - Minimal, elegant */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+}
+
+/* Padding variants */
+.paddingNone {
+  padding: 0;
+}
+
+.paddingSm {
+  padding: 20px;
+}
+
+.paddingMd {
+  padding: 28px;
+}
+
+.paddingLg {
+  padding: 40px;
+}
+
+/* Card Header */
+.header {
+  margin-bottom: 24px;
+}
+
+/* Card Title */
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* Card Description */
+.description {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* Card Footer */
+.footer {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
