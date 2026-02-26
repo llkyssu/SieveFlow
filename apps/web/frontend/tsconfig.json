@@ -1,7 +1,11 @@
 {
   "extends": "@sieveflow/config/typescript/nextjs.json",
   "compilerOptions": {
-    "jsx": "react-jsx"
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
     "next-env.d.ts",
