@@ -1,6 +1,6 @@
 # SieveFlow
 
-Sistema inteligente de análisis y gestión de currículums utilizando procesamiento de lenguaje natural y machine learning.
+Sistema inteligente de análisis y gestión de currículums utilizando procesamiento de lenguaje natural e IA.
 
 ## Estructura del Proyecto
 
